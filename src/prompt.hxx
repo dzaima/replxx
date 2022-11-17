@@ -27,7 +27,7 @@ public:
 	int screen_columns() const {
 		return ( _screenColumns );
 	}
-	void write();
+	void write( bool );
 	int indentation() const;
 };
 

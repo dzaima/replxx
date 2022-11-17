@@ -30,7 +30,8 @@ Prompt::Prompt( Terminal& terminal_ )
 	, _terminal( terminal_ ) {
 }
 
-void Prompt::write() {
+void Prompt::write( bool multiline ) {
+	_text[0] = multiline? U'┌' : ' ';
 	_terminal.write32( _text.get(), _text.length() );
 }
 

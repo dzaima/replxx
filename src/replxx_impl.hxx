@@ -274,10 +274,10 @@ private:
 	hints_t call_hinter( std::string const& input, int&, Replxx::Color& color ) const;
 	void refresh_line( HINT_ACTION = HINT_ACTION::REGENERATE );
 	void move_cursor( void );
-	void indent( void );
+	void indent( bool );
 	int virtual_render( char32_t const*, int, int&, int&, Prompt const* = nullptr );
-	void render( char32_t );
-	void render( HINT_ACTION );
+	void render( char32_t, int&, int );
+	void render( HINT_ACTION, int );
 	void handle_hints( HINT_ACTION );
 	void set_color( Replxx::Color );
 	int context_length( void );

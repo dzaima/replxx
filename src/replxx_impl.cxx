@@ -630,6 +630,7 @@ void Replxx::ReplxxImpl::emulate_key_press( char32_t keyCode_ ) {
 
 char const* Replxx::ReplxxImpl::input( std::string const& prompt ) {
 	try {
+		_hasNewlines = 0;
 		errno = 0;
 		if ( ! tty::in ) { // input not from a terminal, we should work with piped input, i.e. redirected stdin
 			return ( read_from_stdin() );
@@ -749,16 +750,17 @@ void Replxx::ReplxxImpl::set_color( Replxx::Color color_ ) {
 	}
 }
 
-void Replxx::ReplxxImpl::indent( void ) {
+void Replxx::ReplxxImpl::indent( bool last ) {
 	if ( ! _indentMultiline ) {
 		return;
 	}
-	for ( int i( 0 ); i < _prompt.indentation(); ++ i ) {
+	_display.push_back( last ? U'└' : U'│' );
+	for ( int i( 1 ); i < _prompt.indentation(); ++ i ) {
 		_display.push_back( ' ' );
 	}
 }
 
-void Replxx::ReplxxImpl::render( char32_t ch ) {
+void Replxx::ReplxxImpl::render( char32_t ch, int& currLine, int numLines) {
 	if ( ch == Replxx::KEY::ESCAPE ) {
 		_display.push_back( '^' );
 		_display.push_back( '[' );
@@ -770,12 +772,13 @@ void Replxx::ReplxxImpl::render( char32_t ch ) {
 	}
 	if ( ch == '\n' ) {
 		_hasNewlines = true;
-		indent();
+		currLine++;
+		indent(currLine == numLines);
 	}
 	return;
 }
 
-void Replxx::ReplxxImpl::render( HINT_ACTION hintAction_ ) {
+void Replxx::ReplxxImpl::render( HINT_ACTION hintAction_, int numLines ) {
 	if ( hintAction_ == HINT_ACTION::TRIM ) {
 		_display.erase( _display.begin() + _displayInputLength, _display.end() );
 		_modifiedState = false;
@@ -786,9 +789,12 @@ void Replxx::ReplxxImpl::render( HINT_ACTION hintAction_ ) {
 	}
 	_hasNewlines = false;
 	_display.clear();
+
+	int currLine = 0;
+
 	if ( _noColor ) {
 		for ( char32_t ch : _data ) {
-			render( ch );
+			render( ch, currLine, numLines );
 		}
 		_displayInputLength = static_cast<int>( _display.size() );
 		_modifiedState = false;
@@ -811,7 +817,7 @@ void Replxx::ReplxxImpl::render( HINT_ACTION hintAction_ ) {
 			c = colors[i];
 			set_color( c );
 		}
-		render( _data[i] );
+		render( _data[i], currLine, numLines );
 	}
 	set_color( Replxx::Color::DEFAULT );
 	_displayInputLength = static_cast<int>( _display.size() );
@@ -991,7 +997,12 @@ void Replxx::ReplxxImpl::refresh_line( HINT_ACTION hintAction_ ) {
 		return;
 	}
 	_refreshSkipped = false;
-	render( hintAction_ );
+	int numLines = 0;
+	for ( int i( 0 ); i < _data.length(); ++ i ) {
+		if (_data[i]=='\n') ++numLines;
+	}
+	_hasNewlines = numLines>0;
+	render( hintAction_, numLines );
 	handle_hints( hintAction_ );
 	// calculate the desired position of the cursor
 	int xCursorPos( _prompt.indentation() );
@@ -1010,9 +1021,11 @@ void Replxx::ReplxxImpl::refresh_line( HINT_ACTION hintAction_ ) {
 	// position at the end of the prompt, clear to end of previous input
 	_terminal.set_cursor_visible( false );
 	_terminal.jump_cursor(
-		_prompt.indentation(), // 0-based on Win32
-		-( _prompt._cursorRowOffset - _prompt._extraLines )
+		0,
+		-_prompt._cursorRowOffset
 	);
+	_prompt.write(numLines>0);
+	_prompt._cursorRowOffset = _prompt._extraLines;
 	// display the input line
 	if ( _hasNewlines ) {
 		_terminal.clear_screen( Terminal::CLEAR_SCREEN::TO_END );
@@ -1061,7 +1074,7 @@ int Replxx::ReplxxImpl::context_length() {
 }
 
 void Replxx::ReplxxImpl::repaint( void ) {
-	_prompt.write();
+	_prompt.write(_hasNewlines);
 	for ( int i( _prompt._extraLines ); i < _prompt._cursorRowOffset; ++ i ) {
 		_terminal.write8( "\n", 1 );
 	}
@@ -1344,7 +1357,7 @@ char32_t Replxx::ReplxxImpl::do_complete_line( bool showCompletions_ ) {
 	if (!stopList || c == Replxx::KEY::control('C')) {
 		_terminal.write8( "\n", 1 );
 	}
-	_prompt.write();
+	_prompt.write(_hasNewlines);
 	_prompt._cursorRowOffset = _prompt._extraLines;
 	refresh_line();
 	return 0;
@@ -1360,7 +1373,7 @@ int Replxx::ReplxxImpl::get_input_line( void ) {
 	_history.jump( false, false );
 
 	// display the prompt
-	_prompt.write();
+	_prompt.write(_hasNewlines);
 
 	// the cursor starts out at the end of the prompt
 	_prompt._cursorRowOffset = _prompt._extraLines;
@@ -1388,11 +1401,10 @@ int Replxx::ReplxxImpl::get_input_line( void ) {
 		}
 
 		if (c == -2) {
-			_prompt.write();
+			_prompt.write(_hasNewlines);
 			refresh_line();
 			continue;
 		}
-
 		key_press_handlers_t::iterator it( _keyPressHandlers.find( c ) );
 		if ( it != _keyPressHandlers.end() ) {
 			next = it->second( c );
@@ -1481,7 +1493,8 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::insert_character( char32_t c ) {
 	) {
 		/* Avoid a full assign of the line in the
 		 * trivial case. */
-		render( c );
+		int currLine=0;
+		render( c, currLine, 0 );
 		_displayInputLength = static_cast<int>( _display.size() );
 		_terminal.write32( reinterpret_cast<char32_t*>( &c ), 1 );
 	} else {
@@ -2079,7 +2092,7 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::suspend( char32_t ) {
 		raise( SIGSTOP );   // Break out in mid-line
 	}
 	// Redraw prompt
-	_prompt.write();
+	_prompt.write(_hasNewlines);
 	return ( Replxx::ACTION_RESULT::CONTINUE );
 }
 #endif
@@ -2393,7 +2406,7 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::incremental_history_search( char32_t s
 Replxx::ACTION_RESULT Replxx::ReplxxImpl::clear_screen( char32_t c ) {
 	_terminal.clear_screen( Terminal::CLEAR_SCREEN::WHOLE );
 	if ( c ) {
-		_prompt.write();
+		_prompt.write(_hasNewlines);
 		_prompt._cursorRowOffset = _prompt._extraLines;
 		refresh_line();
 	}
@@ -2558,7 +2571,7 @@ void Replxx::ReplxxImpl::dynamic_refresh(Prompt& oldPrompt, Prompt& newPrompt, c
 	virtual_render( buf32 + pos, len - pos, xEndOfInput, yEndOfInput, &newPrompt );
 
 	// display the prompt
-	newPrompt.write();
+	newPrompt.write(_hasNewlines);
 
 	// display the input line
 	_terminal.write32( buf32, len );
