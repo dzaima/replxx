@@ -1173,11 +1173,11 @@ char32_t Replxx::ReplxxImpl::do_complete_line( bool showCompletions_ ) {
 		_data.erase( _pos, _completionContextLength );
 		_data.insert( _pos, *cand, 0, longestCommonPrefix );
 		_completionContextLength = longestCommonPrefix;
-		if ( _ignoreCase && ( completionsCount > 1 ) ) {
-			for ( int i( 0 ); i < longestCommonPrefix; ++ i ) {
-				_data[_pos + i] = static_cast<char32_t>( towlower( static_cast<wint_t>( _data[_pos + i] ) ) );
-			}
-		}
+		// if ( _ignoreCase && ( completionsCount > 1 ) ) {
+		// 	for ( int i( 0 ); i < longestCommonPrefix; ++ i ) {
+		// 		_data[_pos + i] = static_cast<char32_t>( towlower( static_cast<wint_t>( _data[_pos + i] ) ) );
+		// 	}
+		// }
 		_pos += _completionContextLength;
 		refresh_line();
 		return 0;
