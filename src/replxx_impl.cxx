@@ -1900,6 +1900,7 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::line_previous( char32_t ) {
 		}
 		int prevNewlinePosition( prev_newline_position( _pos ) );
 		if ( prevNewlinePosition == _pos ) {
+			if (_pos == 0) break;
 			prevNewlinePosition = prev_newline_position( _pos - 1 );
 		}
 		if ( prevNewlinePosition < 0 ) {
