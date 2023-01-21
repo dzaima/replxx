@@ -2416,17 +2416,21 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::clear_screen( char32_t c ) {
 
 Replxx::ACTION_RESULT Replxx::ReplxxImpl::bracketed_paste( char32_t ) {
 	UnicodeString buf;
+	bool lastNewline = false;
 	while ( char32_t c = _terminal.read_char() ) {
 		if ( c == KEY::PASTE_FINISH ) {
 			break;
 		}
+		lastNewline = false;
 		if ( ( c == '\r' ) || ( c == KEY::control( 'M' ) ) || ( c == KEY::control( 'J' ) ) ) {
 			c = '\n';
+			lastNewline = true;
 		} else if ( c == KEY::control( 'I' ) ) {
 			c = '\t';
 		}
 		buf.push_back( c );
 	}
+	if (lastNewline && buf.length()>1 && _pos==_data.length()) buf.erase(buf.length()-1);
 	_data.insert( _pos, buf, 0, buf.length() );
 	_pos += buf.length();
 	return ( Replxx::ACTION_RESULT::CONTINUE );

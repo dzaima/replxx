@@ -13,3 +13,4 @@ replxx_history_alt.txt
 *.o
 *~
 .vs
+compile_commands.json
