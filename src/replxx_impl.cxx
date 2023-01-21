@@ -2420,7 +2420,7 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::bracketed_paste( char32_t ) {
 		if ( c == KEY::PASTE_FINISH ) {
 			break;
 		}
-		if ( ( c == '\r' ) || ( c == KEY::control( 'M' ) ) ) {
+		if ( ( c == '\r' ) || ( c == KEY::control( 'M' ) ) || ( c == KEY::control( 'J' ) ) ) {
 			c = '\n';
 		} else if ( c == KEY::control( 'I' ) ) {
 			c = '\t';
