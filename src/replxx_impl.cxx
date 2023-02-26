@@ -836,7 +836,7 @@ void Replxx::ReplxxImpl::handle_hints( HINT_ACTION hintAction_ ) {
 		_hintSelection = -1;
 		return;
 	}
-	if ( ( hintAction_ == HINT_ACTION::SKIP ) || ( hintAction_ == HINT_ACTION::TRIM ) ) {
+	if ( ( hintAction_ == HINT_ACTION::SKIP ) || ( hintAction_ == HINT_ACTION::TRIM ) || ( hintAction_ == HINT_ACTION::COMMIT ) ) {
 		return;
 	}
 	if ( _pos != _data.length() ) {
@@ -1853,7 +1853,8 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::commit_line( char32_t ) {
 	// so we don't display the next prompt over the previous input line
 	_pos = _data.length(); // pass _data.length() as _pos for EOL
 	_lastRefreshTime = 0;
-	refresh_line( _refreshSkipped ? HINT_ACTION::REGENERATE : HINT_ACTION::TRIM );
+	// refresh_line( _refreshSkipped ? HINT_ACTION::REGENERATE : HINT_ACTION::TRIM );
+	refresh_line( HINT_ACTION::COMMIT );
 	_history.commit_index();
 	_history.drop_last();
 	return ( Replxx::ACTION_RESULT::RETURN );

@@ -86,7 +86,8 @@ public:
 		REGENERATE,
 		REPAINT,
 		TRIM,
-		SKIP
+		SKIP,
+		COMMIT
 	};
 	typedef std::unordered_map<std::string, Replxx::key_press_handler_t> named_actions_t;
 	typedef Replxx::ACTION_RESULT ( ReplxxImpl::* key_press_handler_raw_t )( char32_t );
