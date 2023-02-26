@@ -918,51 +918,53 @@ void Replxx::ReplxxImpl::handle_hints( HINT_ACTION hintAction_ ) {
 	return;
 }
 
+
+static ssize_t u32str_index(char32_t const* chars, char32_t p) {
+	ssize_t i = 0;
+	while (chars[i]) {
+		if (chars[i]==p) return i;
+		else i++;
+	}
+	return -1;
+}
+
+static char32_t const* brace_s = U"{[(⟨";
+static char32_t const* brace_e = U"}])⟩";
+static char32_t const* brace_both = U"{}[]()⟨⟩";
+
 // check for a matching brace/bracket/paren, remember its position if found
 Replxx::ReplxxImpl::paren_info_t Replxx::ReplxxImpl::matching_paren( void ) {
 	if (_pos >= _data.length()) {
 		return ( paren_info_t{ -1, false } );
 	}
+	
 	/* this scans for a brace matching _data[_pos] to highlight */
-	unsigned char part1, part2;
+	ssize_t index;
 	int scanDirection = 0;
-	if ( strchr( "}])", _data[_pos] ) ) {
+	
+	if ((index = u32str_index(brace_e, _data[_pos])) != -1) {
 		scanDirection = -1; /* backwards */
-		if (_data[_pos] == '}') {
-			part1 = '}'; part2 = '{';
-		} else if (_data[_pos] == ']') {
-			part1 = ']'; part2 = '[';
-		} else {
-			part1 = ')'; part2 = '(';
-		}
-	} else if ( strchr( "{[(", _data[_pos] ) ) {
+	} else if ((index = u32str_index(brace_s, _data[_pos])) != -1) {
 		scanDirection = 1; /* forwards */
-		if (_data[_pos] == '{') {
-			//part1 = '{'; part2 = '}';
-			part1 = '}'; part2 = '{';
-		} else if (_data[_pos] == '[') {
-			//part1 = '['; part2 = ']';
-			part1 = ']'; part2 = '[';
-		} else {
-			//part1 = '('; part2 = ')';
-			part1 = ')'; part2 = '(';
-		}
 	} else {
 		return ( paren_info_t{ -1, false } );
 	}
+	char32_t part1 = brace_e[index];
+	char32_t part2 = brace_s[index];
+	
 	int highlightIdx = -1;
 	bool indicateError = false;
 	int unmatched = scanDirection;
 	int unmatchedOther = 0;
 	for (int i = _pos + scanDirection; i >= 0 && i < _data.length(); i += scanDirection) {
 		/* TODO: the right thing when inside a string */
-		if (strchr("}])", _data[i])) {
+		if (u32str_index(brace_e, _data[i]) != -1) {
 			if (_data[i] == part1) {
 				--unmatched;
 			} else {
 				--unmatchedOther;
 			}
-		} else if (strchr("{[(", _data[i])) {
+		} else if (u32str_index(brace_s, _data[i]) != -1) {
 			if (_data[i] == part2) {
 				++unmatched;
 			} else {
@@ -1450,8 +1452,8 @@ Replxx::ACTION_RESULT Replxx::ReplxxImpl::action( action_trait_t actionTrait_, k
 		_modifiedState = ( _pos != _oldPos ) && (
 			( _pos == _data.length() )
 			|| ( _oldPos == _data.length() )
-			|| ( ( _pos < _data.length() ) && strchr( "{}[]()", _data[_pos] ) )
-			|| ( ( _oldPos < _data.length() ) && strchr( "{}[]()", _data[_oldPos] ) )
+			|| ( ( _pos < _data.length() ) && u32str_index( brace_both, _data[_pos] ) != -1 )
+			|| ( ( _oldPos < _data.length() ) && u32str_index( brace_both, _data[_oldPos] ) != -1 )
 		);
 		_moveCursor = _pos != _oldPos;
 	}
