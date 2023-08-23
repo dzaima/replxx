@@ -161,6 +161,9 @@ private:
 	mutable std::mutex _mutex;
 public:
 	ReplxxImpl( FILE*, FILE*, FILE* );
+	void put_named_action(const char* name, Replxx::ACTION action);
+	void bind_named_action(char32_t key, const char* name);
+	
 	virtual ~ReplxxImpl( void );
 	void set_modify_callback( Replxx::modify_callback_t const& fn );
 	void set_completion_callback( Replxx::completion_callback_t const& fn );
