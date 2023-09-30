@@ -87,7 +87,7 @@ void History::add( UnicodeString const& line, std::string const& when ) {
 	if ( _maxSize <= 0 ) {
 		return;
 	}
-	if ( ! _entries.empty() && ( line == _entries.back().text() ) ) {
+	if ( ! _entries.empty() && ( line == _entries.back().base_text() ) ) {
 		_entries.back() = Entry( now_ms_str(), line );
 		return;
 	}
@@ -352,7 +352,7 @@ History::entries_t::iterator History::moved( entries_t::iterator it_, int by_, b
 
 void History::erase( entries_t::iterator it_ ) {
 	bool invalidated( it_ == _current );
-	_locations.erase( it_->text() );
+	_locations.erase( it_->base_text() );
 	it_ = _entries.erase( it_ );
 	if ( invalidated ) {
 		_current = it_;
@@ -389,7 +389,7 @@ void History::remove_duplicates( void ) {
 	typedef std::pair<locations_t::iterator, bool> locations_insertion_result_t;
 	for ( entries_t::iterator it( _entries.begin() ), end( _entries.end() ); it != end; ++ it ) {
 		it->reset_scratch();
-		locations_insertion_result_t locationsInsertionResult( _locations.insert( make_pair( it->text(), it ) ) );
+		locations_insertion_result_t locationsInsertionResult( _locations.insert( make_pair( it->base_text(), it ) ) );
 		if ( ! locationsInsertionResult.second ) {
 			_entries.erase( locationsInsertionResult.first->second );
 			locationsInsertionResult.first->second = it;

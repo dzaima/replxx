@@ -43,6 +43,9 @@ public:
 		std::string const& timestamp( void ) const {
 			return ( _timestamp );
 		}
+		UnicodeString const& base_text( void ) const {
+			return ( _text );
+		}
 		UnicodeString const& text( void ) const {
 			return ( _scratch );
 		}
