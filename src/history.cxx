@@ -121,7 +121,10 @@ public:
 #endif
 
 bool History::save( std::string const& filename, bool sync_ ) {
-#ifndef _WIN32
+#ifdef _WIN32
+	std::string const& tmpfile = filename;
+#else
+	std::string const& tmpfile = filename + "~";
 	mode_t old_umask = umask( S_IXUSR | S_IRWXG | S_IRWXO );
 	FileLock fileLock( filename );
 #endif
@@ -142,15 +145,21 @@ bool History::save( std::string const& filename, bool sync_ ) {
 	sort();
 	remove_duplicates();
 	trim_to_max_size();
-	ofstream histFile( filename );
-	if ( ! histFile ) {
-		return ( false );
+	/* scope for ofstream object auto-close */ {
+		ofstream histFile( tmpfile );
+		if ( ! histFile ) {
+			return ( false );
+		}
+#ifndef _WIN32
+		umask( old_umask );
+		chmod( filename.c_str(), S_IRUSR | S_IWUSR );
+#endif
+		save( histFile );
 	}
 #ifndef _WIN32
-	umask( old_umask );
-	chmod( filename.c_str(), S_IRUSR | S_IWUSR );
+	rename(tmpfile.c_str(), filename.c_str());
 #endif
-	save( histFile );
+	
 	if ( ! sync_ ) {
 		_entries = std::move( entries );
 		_locations = std::move( locations );
