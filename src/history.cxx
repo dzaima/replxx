@@ -177,9 +177,10 @@ void History::save( std::ostream& histFile ) {
 			us.assign( h.text() );
 			std::replace( us.begin(), us.end(), char32_t( '\n' ), char32_t( ETB ) );
 			utf8.assign( us );
-			histFile << "### " << h.timestamp() << "\n" << utf8.get() << endl;
+			histFile << "### " << h.timestamp() << "\n" << utf8.get() << '\n';
 		}
 	}
+	histFile.flush();
 }
 
 namespace {
